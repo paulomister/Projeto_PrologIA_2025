@@ -1,0 +1,1 @@
+# Projeto_PrologIA_2025
