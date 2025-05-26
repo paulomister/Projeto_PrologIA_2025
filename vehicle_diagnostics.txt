@@ -1,0 +1,162 @@
+:- dynamic(bateria/1).
+:- dynamic(temperatura_motor/1).
+:- dynamic(luz_check_engine/0).
+:- dynamic(luz_bateria/0).
+:- dynamic(falha_ignicao/0).
+:- dynamic(nivel_oleo/1).
+:- dynamic(rotacao_alta/0).
+:- dynamic(sensor_oxigenio/1).
+:- dynamic(barulho_incomum/0).
+:- dynamic(rotacao/0).
+:- dynamic(perca_potencia/0).
+
+
+causa(bateria_fraca).
+causa(alternador_defeituoso).
+causa(sistema_superaquecimento).
+causa(baixo_nivel_oleo).
+causa(vela_ignicao_defeituosa).
+causa(sensor_oxigenio_defeituoso).
+causa(problema_injecao).
+causa(problema_transmissao).
+causa(problema_interno_motor).  
+
+
+limiar_temp_motor(100).
+limiar_bateria(12).
+limiar_oleo(0.2).
+limiar_oxigenio(0.2).
+
+temp_alta :-
+    temperatura_motor(T),
+    limiar_temp_motor(L),
+    T > L.
+
+oleo_baixo :-
+    nivel_oleo(O),
+    limiar_oleo(L),
+    O < L.
+
+bateria_baixa :-
+    bateria(B),
+    limiar_bateria(L),
+    B < L.
+
+oxigenio_alto :- 
+    sensor_oxigenio(S),
+    limiar_oxigenio(L),
+    S > L.
+
+diagnostico(bateria_fraca) :-
+    falha_ignicao,
+    luz_bateria,
+    bateria_baixa.
+
+diagnostico(alternador_defeituoso) :- 
+	luz_bateria,
+    \+ diagnostico(bateria_fraca).
+
+diagnostico(sistema_arrefecimento) :-
+    temp_alta,
+    \+ oleo_baixo,
+    luz_check_engine.
+
+diagnostico(baixo_nivel_oleo) :-
+    oleo_baixo,
+    \+ diagnostico(sistema_arrefecimento).
+
+diagnostico(sensor_oxigenio_defetuoso) :-
+    rotacao_alta,
+    luz_check_engine,
+    oxigenio_alto.
+
+diagnostico(problema_injecao) :-
+    \+ oxigenio_alto,
+    \+ diagnostico(sensor_oxigenio_defetuoso).   % Isso bem aqui é loucuras
+    
+diagnostico(problema_interno_motor) :-
+    barulho_incomum,
+    rotacao,
+    perca_potencia,
+    \+ luz_check_engine,
+    \+ temp_alta,
+    !.
+
+diagnostico(problema_transmissao) :-
+	\+ diagnostico(problema_interno_motor).
+
+recomendacao(bateria_fraca, 'Recarregar ou substituir a bateria').
+recomendacao(alternador_defeituoso, 'Verificar correia do alternador ou trocar alternador').
+recomendacao(sistema_arrefecimento, 'Checar radiador, bomba d\'água, ventoinha e fluido de arrefecimento').
+recomendacao(baixo_nivel_oleo, "possibilidade de vazamento ou manutenção atrasada no sistema de óleo.").
+recomendacao(sensor_oxigenio_defetuoso, "melhorar oxigênio").
+recomendacao(problema_injecao, "Problema de injeção").
+recomendacao(problema_transmissao, "Problema de transmissão").
+
+diagnosticar :-
+    findall(Causa, diagnostico(Causa), ListaCausas),
+    (   ListaCausas \= []
+    ->  format('Possiveis problemas diagnosticados: ~w~n',[ListaCausas]),
+        listar_recomendacoes(ListaCausas)
+    ;   write('Nenhum problema foi diagnosticado com as informacoes atuais.'), nl
+    ).
+
+listar_recomendacoes([]).
+listar_recomendacoes([Causa|Resto]) :-
+    recomendacao(Causa, Rec),
+    format(' -> Para ~w, recomenda-se: ~w~n', [Causa, Rec]),
+    listar_recomendacoes(Resto).
+
+caso_teste_1_partida_inconsistente :-
+    write('=== Caso de Teste 1: Partida Inconsistente ==='), nl,
+    limpar_estado,
+    assertz(falha_ignicao),
+    assertz(luz_bateria),
+    assertz(bateria(12)),
+    diagnosticar.
+
+
+caso_teste_2_superaquecimento :-
+    write('=== Caso de Teste 2: Superaquecimento no Motor ==='), nl,
+    limpar_estado,
+    assertz(temperatura_motor(105)),
+    assertz(nivel_oleo(1.1)),
+    assertz(luz_check_engine),
+	diagnosticar.
+
+caso_teste_3_motor_engasgado_altas_rotacoes :-
+    write('=== Caso de Teste 3: Motor Engasgado em Altas Rotacoes ==='), nl,
+    limpar_estado,
+    assertz(rotacao_alta),
+    assertz(luz_check_engine),
+    assertz(sensor_oxigenio(0.0)), % valor fora do normal
+    diagnosticar,
+    limpar_estado.
+
+caso_teste_4_ruidos_ao_acelerar :-
+    write('=== Caso de Teste 4: Ruidos no Motor ao Acelerar ==='), nl,
+    limpar_estado,
+    assertz(barulho_incomum),
+    assertz(rotacao),
+    assertz(perca_potencia),
+    assertz(temperatura_motor(105)),  % dentro da faixa normal
+    diagnosticar,
+    limpar_estado.
+
+limpar_estado :-
+    retractall(bateria(_)),
+    retractall(temperatura_motor(_)),
+    retractall(nivel_oleo(_)),
+    retractall(sensor_oxigenio(_)),
+    retractall(luz_check_engine),
+    retractall(luz_bateria),
+    retractall(falha_ignicao),
+    retractall(barulho_incomum),
+    retractall(rotacao),
+    retractall(perca_potencia),
+    retractall(rotacao_alta).
+
+
+main :-
+    write('=== Executando varios casos de teste ,==='), nl,
+    caso_teste_4_ruidos_ao_acelerar.

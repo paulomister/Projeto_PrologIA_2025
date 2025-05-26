@@ -1,0 +1,118 @@
+como o código funciona:
+o dynamic quer dizer que vai ser alterado dentro do código com algumas ações específicas.
+
+1. Vai declarar as ações que afetarão o funcionamento do veículo (positivamente ou não)
+2. A função "diagnostivo" vai analisar o possível motivo disso acontecer.
+	2.1 Vai verificar se dentro da varivável global/dynamic existe esse efeito
+3. o Teste_causa vai limpar tudo e definir novos "problemas"
+
+Resumindo, iremos verificar para cada teste se há um a variável global relacionado a possível falha para o mesmo.
+No diagnóstico buscará as causas, analisando suas possíveis falhas (causa -> diagnósticos -> var is in setted? -> diagnósticos -> causa)
+Por fim tem que retornar true ou false
+
+/*********************************************
+ * 1. DECLARAÇÃO DE PREDICADOS DINÂMICOS
+ *********************************************/
+:- dynamic(bateria/1).
+:- dynamic(temperatura_motor/1).como o código funciona:
+o dynamic quer dizer que vai ser alterado dentro do código com algumas ações específicas.
+
+1. Vai declarar as ações que afetarão o funcionamento do veículo (positivamente ou não)
+2. A função "diagnostivo" vai analisar o possível motivo disso acontecer.
+	2.1 Vai verificar se dentro da varivável global/dynamic existe esse efeito
+3. o Teste_causa vai limpar tudo e definir novos "problemas"
+
+Resumindo, iremos verificar para cada teste se há um a variável global relacionado a possível falha para o mesmo.
+No diagnóstico buscará as causas, analisando suas possíveis falhas (causa -> diagnósticos -> var is in setted? -> diagnósticos -> causa)
+Por fim tem que retornar true ou false
+:- dynamic(luz_check_engine/0).
+:- dynamic(luz_bateria/0).
+:- dynamic(falha_ignicao/0).
+
+
+causa(bateria_fraca).
+causa(alternador_defeituoso).
+causa(sistema_arrefecimento).
+causa(baixo_nivel_oleo).
+causa(vela_ignicao_defeituosa).
+causa(sensor_oxigenio_defeituoso).
+causa(problema_injecao).
+causa(problema_transmissao).
+causa(problema_interno_motor).  
+
+diagnostico(bateria_fraca) :-
+    falha_ignicao,
+    luz_bateria,
+    bateria(Voltage),
+    Voltage < 12.
+
+diagnostico(alternador_defeituoso) :- 
+	luz_bateria,
+    \+ diagnostico(bateria_fraca).
+
+recomendacao(bateria_fraca, 'Recarregar ou substituir a bateria').
+recomendacao(alternador_defeituoso, 'Verificar correia do alternador ou trocar alternador').
+recomendacao(sistema_arrefecimento, 'Checar radiador, bomba d\'água, ventoinha e fluido de arrefecimento').
+
+/*********************************************
+ * 5. PREDICADO PRINCIPAL DE DIAGNÓSTICO
+ *    - Identifica todas as causas possíveis,
+ *      exibe as recomendações. (não mexer)
+ *********************************************/
+diagnosticar :-
+    % Encontra todas as causas que satisfazem as regras
+    findall(Causa, diagnostico(Causa), ListaCausas),
+    (   ListaCausas \= []
+    ->  format('Possiveis problemas diagnosticados: ~w~n',[ListaCausas]),
+        listar_recomendacoes(ListaCausas)
+    ;   write('Nenhum problema foi diagnosticado com as informacoes atuais.'), nl
+    ).
+
+listar_recomendacoes([]).
+listar_recomendacoes([Causa|Resto]) :-
+    recomendacao(Causa, Rec),
+    format(' -> Para ~w, recomenda-se: ~w~n', [Causa, Rec]),
+    listar_recomendacoes(Resto).
+
+
+/*********************************************
+ * 6. EXEMPLOS DE CASOS DE TESTE
+ *    - Cada cenário insere (assert) valores
+ *      de sintomas e sensores, chama
+ *      diagnosticar/0 e depois limpa o estado.
+ * * (não mexer)
+ *********************************************/
+% Observação: Estes predicados são apenas exemplos
+% de como testar. Ajuste conforme desejar.
+
+caso_teste_1_partida_inconsistente :-
+    write('=== Caso de Teste 1: Partida Inconsistente ==='), nl,
+    limpar_estado,
+    assertz(falha_ignicao),
+    assertz(luz_bateria),
+    assertz(bateria(11.8)),
+    diagnosticar.
+
+caso_teste_2_partida_qual_é_esse :-
+    write('=== Caso de Teste 1: Partida Inconsistente ==='), nl,
+    limpar_estado,
+    assertz(falha_ignicao),
+    assertz(luz_bateria),
+    assertz(bateria(13)),
+    diagnosticar.
+
+% Predicado para limpar o estado dinâmico antes/depois dos testes
+limpar_estado :-
+    retractall(bateria(_)),
+    retractall(temperatura_motor(_)),
+    retractall(nivel_oleo(_)),
+    retractall(sensor_oxigenio(_)),
+    retractall(luz_check_engine),
+    retractall(luz_bateria),
+    retractall(falha_ignicao),
+    retractall(barulho_incomum),
+    retractall(rotacao_alta).
+    
+main :-
+    write('=== Executando varios casos de teste ,==='), nl,
+    caso_teste_2_partida_qual_é_esse.
