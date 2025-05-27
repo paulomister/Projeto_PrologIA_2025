@@ -211,11 +211,20 @@ listar_recomendacoes([Causa|Resto]) :-
     format(' -> Para ~w, recomenda-se: ~w~n', [Causa, Rec]),
     listar_recomendacoes(Resto).
 
-caso_teste_Exemplo:-  
+caso_teste_exemplo:-  
 write('=== Caso de Teste 5: Bateria Fraca ou Alternador com Falha ==='), nl, limpar_estado, 
 assertz(falha_ignicao),  
 assertz(luz_bateria),  
 assertz(bateria(12.5)),  
+diagnosticar,  
+limpar_estado. 
+
+caso_teste_exemplo_oleo_ou_arrefecimento :-  
+write('=== Caso de Teste: Motor quente e luz de check engine, mas nível de óleo está baixo ==='), nl, 
+limpar_estado,  
+assertz(temperatura_motor(105)),  
+assertz(luz_check_engine),  
+assertz(nivel_oleo(0.1)),  
 diagnosticar,  
 limpar_estado. 
 
