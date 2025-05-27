@@ -9,6 +9,7 @@
 :- dynamic(barulho_incomum/0).
 :- dynamic(rotacao/0).
 :- dynamic(perca_potencia/0).
+:- dynamic(rpm/1).
 
 
 causa(bateria_fraca).
@@ -26,6 +27,7 @@ limiar_temp_motor(100).
 limiar_bateria(12).
 limiar_oleo(0.2).
 limiar_oxigenio(0.2).
+limiar_RPM(3000).
 
 temp_alta :-
     temperatura_motor(T),
@@ -47,6 +49,11 @@ oxigenio_alto :-
     limiar_oxigenio(L),
     S > L.
 
+rpm_alto :-
+    rpm(X),
+    limiar_RPM(L),
+    X > L.
+
 diagnostico(bateria_fraca) :-
     falha_ignicao,
     luz_bateria,
@@ -67,12 +74,15 @@ diagnostico(baixo_nivel_oleo) :-
 
 diagnostico(sensor_oxigenio_defetuoso) :-
     rotacao_alta,
+    rpm_alto,
     luz_check_engine,
     oxigenio_alto.
 
 diagnostico(problema_injecao) :-
-    \+ oxigenio_alto,
-    \+ diagnostico(sensor_oxigenio_defetuoso).   % Isso bem aqui é loucuras
+    rpm_alto,
+    luz_check_engine,
+    \+ diagnostico(sensor_oxigenio_defetuoso),
+    !.   
     
 diagnostico(problema_interno_motor) :-
     barulho_incomum,
@@ -83,7 +93,86 @@ diagnostico(problema_interno_motor) :-
     !.
 
 diagnostico(problema_transmissao) :-
+    barulho_incomum,
+    perca_potencia,
 	\+ diagnostico(problema_interno_motor).
+
+
+diagnostico_explicado(bateria_fraca,
+    'Regras Ativadas: falha_ignicao, luz_bateria, bateria_baixa (mesmo que no limite ou ligeiramente acima, se a ignição falhar, a bateria ainda é suspeita),',
+    'Justificativa: A falha na ignição combinada com a luz da bateria acesa e a voltagem da bateria abaixo ou no limiar indica que a bateria não está fornecendo voltagem adequada ou está com problemas. Prioriza-se bateria fraca, mas se recarregada e o problema continuar, investiga-se o alternador.',
+    'Ações Corretivas: Recarregar ou substituir a bateria. Se o problema persistir, verificar o alternador'
+) :-
+    falha_ignicao,
+    luz_bateria,
+    bateria_baixa.
+
+diagnostico_explicado(alternador_defeituoso,
+    'luz_bateria, !diagnostico(bateria_fraca).',
+    'A luz da bateria está acesa, mas outras causas de bateria fraca foram descartadas, sugerindo um problema no alternador que não está carregando a bateria adequadamente.',
+    'Verificar a correia do alternador e, se necessário, trocar o alternador.'
+) :-
+    luz_bateria,
+    \+ diagnostico(bateria_fraca). 
+
+diagnostico_explicado(sistema_arrefecimento,
+    'temp_alta, !oleo_baixo, luz_check_engine.',
+    'A temperatura do motor está acima do limite e a luz de verificação do motor está acesa, indicando um problema de superaquecimento não relacionado ao baixo nível de óleo.',
+    'Checar radiador, bomba d\'água, ventoinha e fluido de arrefecimento. Verificar possíveis vazamentos.'
+) :-
+    temp_alta,
+    \+ oleo_baixo,
+    luz_check_engine.
+
+diagnostico_explicado(baixo_nivel_oleo,
+    'oleo_baixo, !diagnostico(sistema_arrefecimento).',
+    'O nível de óleo está abaixo do limiar, e o problema não é de superaquecimento primário',
+    'Verificar o nível de óleo e adicionar se necessário. Investigar a possibilidade de vazamentos ou manutenção atrasada no sistema de oleo'
+) :-
+    oleo_baixo,
+    \+ diagnostico(sistema_arrefecimento).
+
+diagnostico_explicado(sensor_oxigenio_defeituoso,
+    'rotacao_alta, rpm_alto, luz_check_engine, oxigenio_alto (ou valor fora da faixa ideal)',
+    'O motor está com alta rotação e a luz de verificação esta acesa, e o sensor de oxigênio está coisando valores fora da faixa ideal, muito baixo, o que impacta a mistura ar-combustível',
+    'Verificar e possivelmente substituir o sensor de oxigênio. Inspecionar o sistema de exaustão.'
+) :-
+    rotacao_alta,
+    rpm_alto,
+    luz_check_engine,
+    (oxigenio_alto; (sensor_oxigenio(S), limiar_oxigenio(L), S < L, format(' (Sensor de Oxigenio muito baixo: ~w)', [S]))). 
+
+diagnostico_explicado(problema_injecao,
+    'rpm_alto, luz_check_engine, !diagnostico(sensor_oxigenio_defeituoso).',
+    'O motor está com alta rotação e a luz de verificação do motor está acesa, mas um problema no sensor de oxigênio foi descartado direcionando para um possível problema no sistema de injecao de combustivel',
+    'erificar injetores de combustível, bomba de combustível e filtros de combustível, Realizar diagnóstico eletrônico'
+) :-
+    rpm_alto,
+    luz_check_engine,
+    \+ diagnostico(sensor_oxigenio_defeituoso),
+    !.
+
+diagnostico_explicado(problema_interno_motor,
+    'barulho_incomum, rotacao, perca_potencia, !luz_check_engine, !temp_alta',
+    'Há barulhos incomuns, perda de potência e o motor está com rotação, mas sem as luzes de aviso de check engine ou superaquecimento, o que sugere um problema mecânico interno mais grave',
+    'Requer uma investigação mecânica aprofundada do motor, como verificar rolamentos, virabrequim, bielas e pistões. Recomenda-se procurar um mecânico especializado imediatamente'
+) :-
+    barulho_incomum,
+    rotacao,
+    perca_potencia,
+    \+ luz_check_engine,
+    \+ temp_alta,
+    !.
+
+diagnostico_explicado(problema_transmissao,
+    'barulho_incomum, perca_potencia, !diagnostico(problema_interno_motor).',
+    'Há barulhos incomuns e perda de potência, mas os diagnósticos de problema interno do motor foram descartados, sugerindo que a questão reside na transmissão do veículo.',
+    'Verificar o nível e a qualidade do fluido da transmissão. Inspecionar a embreagem (se manual) ou os componentes internos da transmissão. Consultar um especialista em transmissão.'
+) :-
+    barulho_incomum,
+    perca_potencia,
+    \+ diagnostico(problema_interno_motor).
+
 
 recomendacao(bateria_fraca, 'Recarregar ou substituir a bateria').
 recomendacao(alternador_defeituoso, 'Verificar correia do alternador ou trocar alternador').
@@ -91,15 +180,30 @@ recomendacao(sistema_arrefecimento, 'Checar radiador, bomba d\'água, ventoinha 
 recomendacao(baixo_nivel_oleo, "possibilidade de vazamento ou manutenção atrasada no sistema de óleo.").
 recomendacao(sensor_oxigenio_defetuoso, "melhorar oxigênio").
 recomendacao(problema_injecao, "Problema de injeção").
+recomendacao(problema_interno_motor, "Problema interno do motor").
 recomendacao(problema_transmissao, "Problema de transmissão").
 
 diagnosticar :-
     findall(Causa, diagnostico(Causa), ListaCausas),
     (   ListaCausas \= []
     ->  format('Possiveis problemas diagnosticados: ~w~n',[ListaCausas]),
-        listar_recomendacoes(ListaCausas)
+        listar_recomendacoes(ListaCausas),
+    findall(
+            (Causa, Regras, J, A),
+            (member(Causa, ListaCausas), diagnostico_explicado(Causa, Regras, J, A)),
+            ListaExplicacoes
+        ),
+        lista_diagnostico_explicado(ListaExplicacoes)
     ;   write('Nenhum problema foi diagnosticado com as informacoes atuais.'), nl
     ).
+
+lista_diagnostico_explicado([]).
+lista_diagnostico_explicado([(Causa, Regras, Justificativa, Acoes)|Resto]) :-
+    format('~nProblema Diagnosticado: ~w~n', [Causa]),
+    format('  - Regras Ativadas: ~w~n', [Regras]),
+    format('  - Justificativa: ~w~n', [Justificativa]),
+    format('  - Ações Corretivas Propostas: ~w~n', [Acoes]),
+    lista_diagnostico_explicado(Resto).
 
 listar_recomendacoes([]).
 listar_recomendacoes([Causa|Resto]) :-
@@ -127,11 +231,12 @@ caso_teste_2_superaquecimento :-
 caso_teste_3_motor_engasgado_altas_rotacoes :-
     write('=== Caso de Teste 3: Motor Engasgado em Altas Rotacoes ==='), nl,
     limpar_estado,
+    assertz(barulho_incomum),
+    assertz(rpm(3001)),
     assertz(rotacao_alta),
     assertz(luz_check_engine),
-    assertz(sensor_oxigenio(0.0)), % valor fora do normal
-    diagnosticar,
-    limpar_estado.
+    assertz(sensor_oxigenio(0.0)), 
+    diagnosticar.
 
 caso_teste_4_ruidos_ao_acelerar :-
     write('=== Caso de Teste 4: Ruidos no Motor ao Acelerar ==='), nl,
@@ -139,9 +244,17 @@ caso_teste_4_ruidos_ao_acelerar :-
     assertz(barulho_incomum),
     assertz(rotacao),
     assertz(perca_potencia),
-    assertz(temperatura_motor(105)),  % dentro da faixa normal
-    diagnosticar,
-    limpar_estado.
+    diagnosticar.
+
+caso_teste_5_conflito_bateria_aquecimento :-
+    write('=== Caso de Teste 5: Conflito Bateria/Aquecimento ==='), nl,
+    limpar_estado,
+    assertz(luz_bateria),          
+    assertz(temperatura_motor(105)), 
+    assertz(luz_check_engine),     
+    assertz(bateria(12.5)),      
+    assertz(nivel_oleo(1.0)),      
+    diagnosticar.
 
 limpar_estado :-
     retractall(bateria(_)),
@@ -154,6 +267,8 @@ limpar_estado :-
     retractall(barulho_incomum),
     retractall(rotacao),
     retractall(perca_potencia),
+    retractall(rotacao_alta),
+    retractall(rpm(_)),
     retractall(rotacao_alta).
 
 
