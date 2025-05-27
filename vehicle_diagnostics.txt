@@ -211,6 +211,15 @@ listar_recomendacoes([Causa|Resto]) :-
     format(' -> Para ~w, recomenda-se: ~w~n', [Causa, Rec]),
     listar_recomendacoes(Resto).
 
+caso_teste_Exemplo:-  
+write('=== Caso de Teste 5: Bateria Fraca ou Alternador com Falha ==='), nl, limpar_estado, 
+assertz(falha_ignicao),  
+assertz(luz_bateria),  
+assertz(bateria(12.5)),  
+diagnosticar,  
+limpar_estado. 
+
+
 caso_teste_1_partida_inconsistente :-
     write('=== Caso de Teste 1: Partida Inconsistente ==='), nl,
     limpar_estado,
