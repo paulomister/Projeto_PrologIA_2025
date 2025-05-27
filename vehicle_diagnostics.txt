@@ -174,14 +174,30 @@ diagnostico_explicado(problema_transmissao,
     \+ diagnostico(problema_interno_motor).
 
 
-recomendacao(bateria_fraca, 'Recarregar ou substituir a bateria').
-recomendacao(alternador_defeituoso, 'Verificar correia do alternador ou trocar alternador').
-recomendacao(sistema_arrefecimento, 'Checar radiador, bomba d\'água, ventoinha e fluido de arrefecimento').
-recomendacao(baixo_nivel_oleo, "possibilidade de vazamento ou manutenção atrasada no sistema de óleo.").
-recomendacao(sensor_oxigenio_defetuoso, "melhorar oxigênio").
-recomendacao(problema_injecao, "Problema de injeção").
-recomendacao(problema_interno_motor, "Problema interno do motor").
-recomendacao(problema_transmissao, "Problema de transmissão").
+recomendacao(bateria_fraca, 
+    'A bateria está com carga insuficiente. Verifique os terminais quanto à oxidação, teste a voltagem com um multímetro e considere recarregá-la ou substituí-la.').
+
+recomendacao(alternador_defeituoso, 
+    'O alternador pode não estar recarregando a bateria corretamente. Verifique a correia quanto ao tensionamento e desgaste. Se necessário, substitua o alternador.').
+
+recomendacao(sistema_arrefecimento, 
+    'O sistema de arrefecimento pode estar comprometido. Cheque o radiador, bomba d\'água, ventoinha e o nível do fluido. Procure por vazamentos ou sinais de superaquecimento.').
+
+recomendacao(baixo_nivel_oleo, 
+    'Possível vazamento ou manutenção atrasada. Verifique o nível de óleo com a vareta e procure por manchas no solo. Faça a troca se necessário.').
+
+recomendacao(sensor_oxigenio_defetuoso, 
+    'O sensor de oxigênio pode estar com defeito, afetando o consumo e as emissões. Recomenda-se escanear com ferramenta OBD e substituir o sensor, se necessário.').
+
+recomendacao(problema_injecao, 
+    'Falhas no sistema de injeção. Verifique os bicos injetores, pressão da bomba de combustível e sensores associados.').
+
+recomendacao(problema_interno_motor, 
+    'Há indícios de falhas internas no motor, como desgaste de pistões ou válvulas. É recomendável realizar testes de compressão e análise mecânica detalhada.').
+
+recomendacao(problema_transmissao, 
+    'Problemas na transmissão. Verifique o nível e estado do fluido e procure assistência especializada se houver dificuldade nas trocas de marcha ou ruídos.').
+
 
 diagnosticar :-
     findall(Causa, diagnostico(Causa), ListaCausas),
