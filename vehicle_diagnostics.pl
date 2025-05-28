@@ -403,4 +403,3 @@ main :-
    caso_teste_5_conflito_bateria_aquecimento,
    caso_teste_6_velas_ignicao,
    write('~n~n=== Fim da Execução ===~n').
-
